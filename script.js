@@ -238,7 +238,7 @@ function setBoard(){
   $('.log').html('');
   selects = [];
   makeDeck();
-  cards = shuffleArray(deck);
+  shuffleArray(deck);
   for(var i=0;i<12;i++){
     $('.board').append(drawCard(getNextCard()));
   }
