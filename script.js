@@ -119,7 +119,7 @@ function replaceCards(cards){
   
 }
 
-function checkIfSET(cards){
+function checkIfSET(cards, countDifferences){
   var SET = true;
   var data = {
     number: [],
@@ -132,12 +132,23 @@ function checkIfSET(cards){
       data[cardData].push(cards[i].data(cardData));
     }
   }
+  let differences = 0;
   for(var array in data){
     if(!checkIfSameOrDifferent(data[array])){
       SET = false;
     }
+    if (checkIfDifferent(data[array])){
+      differences++;
+    }
   }
-  return SET;
+  if (!countDifferences) {
+    return SET;
+  } else {
+    return {
+      isSET: SET,
+      differences,
+    };
+  }
 }
 
 function checkIfSameOrDifferent(array){
@@ -160,6 +171,21 @@ function checkIfSameOrDifferent(array){
   }
   
   return same||different;
+}
+
+function checkIfDifferent(array){
+  var different = true;
+  if(array[0]===array[1]){
+    different = false;
+  }
+  if(array[1]===array[2]){
+    different = false;
+  }
+  if(array[0]===array[2]){
+    different = false;
+  }
+  
+  return different;
 }
 
 function add3Cards(){
