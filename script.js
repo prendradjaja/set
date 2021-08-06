@@ -109,7 +109,9 @@ function getNextCard(){
 }
 
 function replaceCards(cards){
-  
+  if (!cardsAdded) {
+    shuffleAndFindNCards(cards.length, cards.map(card => card.data()));
+  }
   for(var i in cards){
     if(!cardsAdded){
       cards[i].replaceWith(drawCard(getNextCard()));
@@ -229,6 +231,7 @@ function hint(){
     $(currentSET[hintCounter]).addClass("highlight");
     hintCounter++;
   } else {
+    console.debug('No SETs');
     $("#add").addClass("highlight");
   }
 }
@@ -244,24 +247,30 @@ function setBoard(){
   $('.log').html('');
   selects = [];
   makeDeck();
-  findInitialBoardCards();
+  shuffleAndFindNCards(12);
   for(var i=0;i<12;i++){
     $('.board').append(drawCard(getNextCard()));
   }
   animateCards(100);
 }
 
-// Shuffles the deck until the first 12 cards are a board with "disjoint"
-// matches (and only disjoint matches)
-function findInitialBoardCards() {
-  for (var i = 0; true; i++) {
+// Shuffles the deck until the first N cards, if dealt onto the existing
+// board (minus cardsToRemove, if provided), would create disjoint SET(s) and
+// only disjoint SET(s).
+function shuffleAndFindNCards(n, cardsToRemove) {
+  cardsToRemove = cardsToRemove || [];
+  let board = Array.from($('.board .card')).map(card => $(card).data());
+  board = board.filter(card => !cardsToRemove.includes(card));
+  const iterationLimit = 1000;
+  for (var i = 0; i < iterationLimit; i++) {
     shuffleArray(deck);
-    const board = deck.slice(0, 12);
-    if (hasDisjointMatchesOnly(board)) {
-      console.debug(`Initial board found after ${i} iterations`);
+    const firstNCards = deck.slice(0, n);
+    if (hasDisjointMatchesOnly(board.concat(firstNCards))) {
+      console.debug(`${i} shuffles`);
       return;
     }
   }
+  console.debug(`Failed after ${iterationLimit} shuffles`);
 }
 
 function findAllMatches(board) {
