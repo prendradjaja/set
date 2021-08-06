@@ -1,3 +1,6 @@
+const three = 3;
+const four = 4;
+
 const makeSVG = function(tag, attrs) {
   var el= "<" + tag;
   for (var k in attrs)
@@ -241,11 +244,70 @@ function setBoard(){
   $('.log').html('');
   selects = [];
   makeDeck();
-  shuffleArray(deck);
+  findInitialBoardCards();
   for(var i=0;i<12;i++){
     $('.board').append(drawCard(getNextCard()));
   }
   animateCards(100);
+}
+
+// Shuffles the deck until the first 12 cards are a board with "disjoint"
+// matches (and only disjoint matches)
+function findInitialBoardCards() {
+  for (var i = 0; true; i++) {
+    shuffleArray(deck);
+    const board = deck.slice(0, 12);
+    if (hasDisjointMatchesOnly(board)) {
+      console.debug(`Initial board found after ${i} iterations`);
+      return;
+    }
+  }
+}
+
+function findAllMatches(board) {
+  const result = [];
+  for (let cards of combinations(board, three)) {
+    if (checkIfSET(cards)) {
+      result.push(cards);
+    }
+  }
+  return result;
+}
+
+function findAllDisjointMatches(board) {
+  const result = [];
+  for (let cards of combinations(board, three)) {
+    const { isSET, differences } = checkIfSET(cards, 'countDifferences')
+    if (isSET && differences === 4) {
+      result.push(cards);
+    }
+  }
+  return result;
+}
+
+// "has disjoint matches and ONLY disjoint matches"
+function hasDisjointMatchesOnly(board) {
+  const countMatches = findAllMatches(board).length;
+  const countDisjoint = findAllDisjointMatches(board).length;
+  return !!countDisjoint && (countMatches === countDisjoint);
+}
+
+function rangeInclusive(n) {
+  return Array.from(Array(n + 1).keys());
+}
+
+// Optimizable: Don't copy array every iteration
+function* combinations(array, n) {
+  if (n === 0 || n > array.length) {
+    yield [];
+  } else {
+    for (let i of rangeInclusive(array.length - n)) {
+      const first = array[i];
+      for (let subcombinations of combinations(array.slice(i + 1), n - 1)) {
+        yield [first, ...subcombinations];
+      }
+    }
+  }
 }
 
 function addLogEntry(set, valid){
