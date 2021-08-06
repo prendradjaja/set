@@ -1,3 +1,6 @@
+const three = 3;
+const four = 4;
+
 const makeSVG = function(tag, attrs) {
   var el= "<" + tag;
   for (var k in attrs)
@@ -91,7 +94,7 @@ $('.board').on('click','.card', function(){
         addLogEntry(selects,isValid);
         $('.card').removeClass("selected");
         selects.splice(0);
-      },500);
+      },100);
     }
   } else if(selects.length<3) {
     selects.splice(selects.indexOf($(this)),1);
@@ -106,7 +109,9 @@ function getNextCard(){
 }
 
 function replaceCards(cards){
-  
+  if (!cardsAdded) {
+    shuffleAndFindNCards(cards.length, cards.map(card => card.data()));
+  }
   for(var i in cards){
     if(!cardsAdded){
       cards[i].replaceWith(drawCard(getNextCard()));
@@ -119,7 +124,10 @@ function replaceCards(cards){
   
 }
 
-function checkIfSET(cards){
+function checkIfSET(cards, countDifferences){
+  if (cards[0].data) {
+    cards = cards.map(card => card.data());
+  }
   var SET = true;
   var data = {
     number: [],
@@ -128,16 +136,27 @@ function checkIfSET(cards){
     shape: [],
   };
   for(var i = 0; i<cards.length;i++){
-    for(var cardData in cards[i].data()){
-      data[cardData].push(cards[i].data(cardData));
+    for(var cardData in cards[i]){
+      data[cardData].push(cards[i][cardData]);
     }
   }
+  let differences = 0;
   for(var array in data){
     if(!checkIfSameOrDifferent(data[array])){
       SET = false;
     }
+    if (checkIfDifferent(data[array])){
+      differences++;
+    }
   }
-  return SET;
+  if (!countDifferences) {
+    return SET;
+  } else {
+    return {
+      isSET: SET,
+      differences,
+    };
+  }
 }
 
 function checkIfSameOrDifferent(array){
@@ -160,6 +179,21 @@ function checkIfSameOrDifferent(array){
   }
   
   return same||different;
+}
+
+function checkIfDifferent(array){
+  var different = true;
+  if(array[0]===array[1]){
+    different = false;
+  }
+  if(array[1]===array[2]){
+    different = false;
+  }
+  if(array[0]===array[2]){
+    different = false;
+  }
+  
+  return different;
 }
 
 function add3Cards(){
@@ -197,6 +231,7 @@ function hint(){
     $(currentSET[hintCounter]).addClass("highlight");
     hintCounter++;
   } else {
+    console.debug('No SETs');
     $("#add").addClass("highlight");
   }
 }
@@ -212,11 +247,76 @@ function setBoard(){
   $('.log').html('');
   selects = [];
   makeDeck();
-  cards = shuffleArray(deck);
+  shuffleAndFindNCards(12);
   for(var i=0;i<12;i++){
     $('.board').append(drawCard(getNextCard()));
   }
   animateCards(100);
+}
+
+// Shuffles the deck until the first N cards, if dealt onto the existing
+// board (minus cardsToRemove, if provided), would create disjoint SET(s) and
+// only disjoint SET(s).
+function shuffleAndFindNCards(n, cardsToRemove) {
+  cardsToRemove = cardsToRemove || [];
+  let board = Array.from($('.board .card')).map(card => $(card).data());
+  board = board.filter(card => !cardsToRemove.includes(card));
+  const iterationLimit = 1000;
+  for (var i = 0; i < iterationLimit; i++) {
+    shuffleArray(deck);
+    const firstNCards = deck.slice(0, n);
+    if (hasDisjointMatchesOnly(board.concat(firstNCards))) {
+      console.debug(`${i} shuffles`);
+      return;
+    }
+  }
+  console.debug(`Failed after ${iterationLimit} shuffles`);
+}
+
+function findAllMatches(board) {
+  const result = [];
+  for (let cards of combinations(board, three)) {
+    if (checkIfSET(cards)) {
+      result.push(cards);
+    }
+  }
+  return result;
+}
+
+function findAllDisjointMatches(board) {
+  const result = [];
+  for (let cards of combinations(board, three)) {
+    const { isSET, differences } = checkIfSET(cards, 'countDifferences')
+    if (isSET && differences === 4) {
+      result.push(cards);
+    }
+  }
+  return result;
+}
+
+// "has disjoint matches and ONLY disjoint matches"
+function hasDisjointMatchesOnly(board) {
+  const countMatches = findAllMatches(board).length;
+  const countDisjoint = findAllDisjointMatches(board).length;
+  return !!countDisjoint && (countMatches === countDisjoint);
+}
+
+function rangeInclusive(n) {
+  return Array.from(Array(n + 1).keys());
+}
+
+// Optimizable: Don't copy array every iteration
+function* combinations(array, n) {
+  if (n === 0 || n > array.length) {
+    yield [];
+  } else {
+    for (let i of rangeInclusive(array.length - n)) {
+      const first = array[i];
+      for (let subcombinations of combinations(array.slice(i + 1), n - 1)) {
+        yield [first, ...subcombinations];
+      }
+    }
+  }
 }
 
 function addLogEntry(set, valid){
