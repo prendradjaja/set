@@ -94,7 +94,7 @@ $('.board').on('click','.card', function(){
         addLogEntry(selects,isValid);
         $('.card').removeClass("selected");
         selects.splice(0);
-      },500);
+      },100);
     }
   } else if(selects.length<3) {
     selects.splice(selects.indexOf($(this)),1);
