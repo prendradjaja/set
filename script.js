@@ -120,6 +120,9 @@ function replaceCards(cards){
 }
 
 function checkIfSET(cards, countDifferences){
+  if (cards[0].data) {
+    cards = cards.map(card => card.data());
+  }
   var SET = true;
   var data = {
     number: [],
@@ -128,8 +131,8 @@ function checkIfSET(cards, countDifferences){
     shape: [],
   };
   for(var i = 0; i<cards.length;i++){
-    for(var cardData in cards[i].data()){
-      data[cardData].push(cards[i].data(cardData));
+    for(var cardData in cards[i]){
+      data[cardData].push(cards[i][cardData]);
     }
   }
   let differences = 0;
